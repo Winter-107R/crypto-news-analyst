@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: crypto-news-analyst
+
+  # ── MySQL ─────────────────────────────────────────────────────────────
+  datasource:
+    url: jdbc:mysql://localhost:3307/crypto_analyst?createDatabaseIfNotExist=true&serverTimezone=UTC
+    username: analyst
+    password: analyst123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  # ── Redis ─────────────────────────────────────────────────────────────
+  data:
+    redis:
+      host: localhost
+      port: 6380
+
+  # ── Kafka ─────────────────────────────────────────────────────────────
+  kafka:
+    bootstrap-servers: localhost:9093
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: crypto-analyst-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.winter107r.cryptoanalyst.infrastructure.messaging.kafka"
+        spring.json.value.default.type: "com.winter107r.cryptoanalyst.infrastructure.messaging.kafka.NewsEvent"
+
+
+# ── OpenAI direct REST (only read when profile=openai) ────────────────────
+openai:
+  api-key: ${OPENAI_API_KEY:mock-key}
+  model: gpt-4o-mini
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.winter107r: DEBUG
+    org.springframework.kafka: WARN

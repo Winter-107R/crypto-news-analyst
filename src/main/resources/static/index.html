@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crypto News Analyst</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #30363d;
+      --accent:   #f0b90b;   /* Binance yellow */
+      --accent2:  #1f6feb;
+      --text:     #e6edf3;
+      --muted:    #8b949e;
+      --green:    #3fb950;
+      --red:      #f85149;
+      --radius:   8px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 32px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    header .logo { font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+    header .sub  { font-size: 12px; color: var(--muted); }
+    header .badge {
+      margin-left: auto;
+      background: #1a2d0a;
+      color: var(--green);
+      border: 1px solid #2d5016;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Layout ── */
+    main {
+      max-width: 960px;
+      margin: 32px auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .full-width { grid-column: 1 / -1; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-header .icon { font-size: 16px; }
+    .card-header h2   { font-size: 14px; font-weight: 600; color: var(--text); }
+    .card-header .tip { margin-left: auto; font-size: 11px; color: var(--muted); }
+    .card-body { padding: 20px; }
+
+    /* ── Form elements ── */
+    label  { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+    input, textarea, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color .15s;
+      font-family: inherit;
+      resize: vertical;
+    }
+    input:focus, textarea:focus { border-color: var(--accent2); }
+    .field { margin-bottom: 14px; }
+    .row   { display: flex; gap: 12px; }
+    .row .field { flex: 1; }
+
+    /* ── Buttons ── */
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 18px;
+      transition: opacity .15s, transform .1s;
+    }
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #0d1117; width: 100%; }
+    .btn-query   { background: var(--accent2); color: #fff; width: 100%; }
+
+    /* ── Response box ── */
+    .response-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.7;
+      min-height: 60px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .response-box.empty   { color: var(--muted); font-style: italic; }
+    .response-box.success { border-color: #2d5016; }
+    .response-box.error   { border-color: #6b1b1b; color: var(--red); }
+
+    /* ── Sources pills ── */
+    .sources { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .source-pill {
+      background: #161b22;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 11px;
+      color: var(--muted);
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── Meta row ── */
+    .meta {
+      display: flex;
+      gap: 16px;
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .meta .cached-yes { color: var(--green); }
+    .meta .cached-no  { color: var(--accent); }
+
+    /* ── Feed ── */
+    #feed-list { list-style: none; }
+    #feed-list li {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    #feed-list li:last-child { border-bottom: none; }
+    #feed-list .feed-sym {
+      display: inline-block;
+      background: #1a2030;
+      color: var(--accent);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 10px;
+      font-weight: 700;
+      margin-right: 6px;
+    }
+    #feed-list .feed-time { color: var(--muted); float: right; }
+    #feed-empty { color: var(--muted); font-size: 12px; font-style: italic; }
+
+    /* ── Spinner ── */
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Stat bar ── */
+    .stat-bar {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .stat {
+      flex: 1;
+      padding: 14px 16px;
+      border-right: 1px solid var(--border);
+      text-align: center;
+    }
+    .stat:last-child { border-right: none; }
+    .stat .val { font-size: 22px; font-weight: 700; color: var(--accent); }
+    .stat .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">CNA ◈</div>
+    <div class="sub">Crypto News Analyst — RAG powered</div>
+  </div>
+  <div class="badge" id="status-badge">● connecting…</div>
+</header>
+
+<main>
+
+  <!-- ── Stats ── -->
+  <div class="full-width">
+    <div class="stat-bar">
+      <div class="stat"><div class="val" id="stat-ingested">0</div><div class="lbl">Articles ingested</div></div>
+      <div class="stat"><div class="val" id="stat-queries">0</div><div class="lbl">Queries answered</div></div>
+      <div class="stat"><div class="val" id="stat-cached">0</div><div class="lbl">Cache hits</div></div>
+    </div>
+  </div>
+
+  <!-- ── Ingest ── -->
+  <div class="card">
+    <div class="card-header">
+      <span class="icon">📥</span>
+      <h2>Ingest News</h2>
+      <span class="tip">POST /api/news/ingest</span>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="field">
+          <label>Symbol</label>
+          <select id="i-symbol">
+            <option>BTC</option><option>ETH</option><option>BNB</option>
+            <option>SOL</option><option>XRP</option><option>ALL</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Source</label>
+          <input id="i-source" value="CoinDesk" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Title</label>
+        <input id="i-title" placeholder="BTC breaks $100k on ETF inflows" />
+      </div>
+      <div class="field">
+        <label>Content</label>
+        <textarea id="i-content" rows="4" placeholder="Full article text…"></textarea>
+      </div>
+      <button class="btn-primary" onclick="ingest()">Ingest Article</button>
+      <div id="ingest-result" class="response-box empty" style="margin-top:14px">Result will appear here.</div>
+    </div>
+  </div>
+
+  <!-- ── Feed ── -->
+  <div class="card">
+    <div class="card-header">
+      <span class="icon">📡</span>
+      <h2>Recent Ingests</h2>
+      <span class="tip">session only</span>
+    </div>
+    <div class="card-body">
+      <ul id="feed-list"><li id="feed-empty">No articles ingested yet.</li></ul>
+    </div>
+  </div>
+
+  <!-- ── Query ── -->
+  <div class="card full-width">
+    <div class="card-header">
+      <span class="icon">🤖</span>
+      <h2>Ask a Risk Question</h2>
+      <span class="tip">POST /api/insights/query</span>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="field" style="flex:3">
+          <label>Question</label>
+          <input id="q-question" placeholder="What are the current risks for BTC?" onkeydown="if(event.key==='Enter')query()" />
+        </div>
+        <div class="field" style="flex:1">
+          <label>Top-K articles</label>
+          <select id="q-topk">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="5">5</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn-query" onclick="query()">Ask (RAG)</button>
+
+      <div style="margin-top:16px">
+        <label style="margin-bottom:8px">Answer</label>
+        <div id="q-answer" class="response-box empty">Answer will appear here.</div>
+        <div class="sources" id="q-sources"></div>
+        <div class="meta" id="q-meta"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const stats = { ingested: 0, queries: 0, cached: 0 };
+
+  // ── health check ──────────────────────────────────────────────────
+  async function checkHealth() {
+    try {
+      const r = await fetch('/actuator/health').catch(() => null);
+      const badge = document.getElementById('status-badge');
+      if (r && r.ok) {
+        badge.textContent = '● online';
+        badge.style.background = '#1a2d0a';
+        badge.style.color = '#3fb950';
+        badge.style.borderColor = '#2d5016';
+      } else {
+        badge.textContent = '● offline';
+        badge.style.background = '#2d0a0a';
+        badge.style.color = '#f85149';
+        badge.style.borderColor = '#6b1b1b';
+      }
+    } catch {}
+  }
+  checkHealth();
+  setInterval(checkHealth, 15000);
+
+  // ── stat update ───────────────────────────────────────────────────
+  function updateStats(key) {
+    stats[key]++;
+    document.getElementById('stat-' + key).textContent = stats[key];
+  }
+
+  // ── ingest ────────────────────────────────────────────────────────
+  async function ingest() {
+    const title   = document.getElementById('i-title').value.trim();
+    const content = document.getElementById('i-content').value.trim();
+    const source  = document.getElementById('i-source').value.trim();
+    const symbol  = document.getElementById('i-symbol').value;
+    const box     = document.getElementById('ingest-result');
+
+    if (!title || !content) {
+      box.className = 'response-box error';
+      box.textContent = 'Title and content are required.';
+      return;
+    }
+
+    box.className = 'response-box';
+    box.innerHTML = '<span class="spinner"></span> Ingesting…';
+
+    try {
+      const r = await fetch('/api/news/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content, source, symbol })
+      });
+      const data = await r.json();
+
+      if (r.ok) {
+        box.className = 'response-box success';
+        box.textContent = `Queued ✓  id: ${data.id}`;
+        updateStats('ingested');
+        addFeedItem(symbol, title);
+        document.getElementById('i-title').value   = '';
+        document.getElementById('i-content').value = '';
+      } else {
+        box.className = 'response-box error';
+        box.textContent = JSON.stringify(data, null, 2);
+      }
+    } catch (e) {
+      box.className = 'response-box error';
+      box.textContent = 'Network error — is the server running?';
+    }
+  }
+
+  // ── feed ──────────────────────────────────────────────────────────
+  function addFeedItem(symbol, title) {
+    const list = document.getElementById('feed-list');
+    const empty = document.getElementById('feed-empty');
+    if (empty) empty.remove();
+
+    const time = new Date().toLocaleTimeString();
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="feed-sym">${symbol}</span>${title.substring(0, 60)}${title.length > 60 ? '…' : ''}<span class="feed-time">${time}</span>`;
+    list.prepend(li);
+  }
+
+  // ── query ─────────────────────────────────────────────────────────
+  async function query() {
+    const question = document.getElementById('q-question').value.trim();
+    const topK     = parseInt(document.getElementById('q-topk').value);
+    const ansBox   = document.getElementById('q-answer');
+    const srcBox   = document.getElementById('q-sources');
+    const metaBox  = document.getElementById('q-meta');
+
+    if (!question) {
+      ansBox.className = 'response-box error';
+      ansBox.textContent = 'Enter a question first.';
+      return;
+    }
+
+    ansBox.className = 'response-box';
+    ansBox.innerHTML = '<span class="spinner"></span> Searching news + generating…';
+    srcBox.innerHTML = '';
+    metaBox.innerHTML = '';
+
+    try {
+      const r = await fetch('/api/insights/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, topK })
+      });
+      const data = await r.json();
+
+      if (r.ok) {
+        ansBox.className = 'response-box success';
+        ansBox.textContent = data.answer;
+
+        updateStats('queries');
+        if (data.cached) updateStats('cached');
+
+        // sources
+        if (data.sourceTitles && data.sourceTitles.length) {
+          srcBox.innerHTML = '<div style="font-size:11px;color:var(--muted);width:100%;margin-bottom:4px">Sources used:</div>' +
+            data.sourceTitles.map(s => `<span class="source-pill" title="${s}">${s}</span>`).join('');
+        }
+
+        // meta
+        const cachedHtml = data.cached
+          ? '<span class="cached-yes">⚡ from cache</span>'
+          : '<span class="cached-no">🔄 freshly generated</span>';
+        const ts = data.generatedAt ? new Date(data.generatedAt).toLocaleTimeString() : '';
+        metaBox.innerHTML = `${cachedHtml} <span>${ts}</span>`;
+
+      } else {
+        ansBox.className = 'response-box error';
+        ansBox.textContent = JSON.stringify(data, null, 2);
+      }
+    } catch (e) {
+      ansBox.className = 'response-box error';
+      ansBox.textContent = 'Network error — is the server running?';
+    }
+  }
+</script>
+</body>
+</html>
